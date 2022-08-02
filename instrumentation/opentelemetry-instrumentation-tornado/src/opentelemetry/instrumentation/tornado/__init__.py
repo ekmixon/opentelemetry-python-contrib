@@ -145,9 +145,9 @@ class TornadoInstrumentor(BaseInstrumentor):
         tracer_provider = kwargs.get("tracer_provider")
         tracer = trace.get_tracer(__name__, __version__, tracer_provider)
 
-        client_request_hook = kwargs.get("client_request_hook", None)
-        client_response_hook = kwargs.get("client_response_hook", None)
-        server_request_hook = kwargs.get("server_request_hook", None)
+        client_request_hook = kwargs.get("client_request_hook")
+        client_response_hook = kwargs.get("client_response_hook")
+        server_request_hook = kwargs.get("server_request_hook")
 
         def handler_init(init, handler, args, kwargs):
             cls = handler.__class__
@@ -219,10 +219,7 @@ def _on_finish(tracer, func, handler, args, kwargs):
 
 
 def _log_exception(tracer, func, handler, args, kwargs):
-    error = None
-    if len(args) == 3:
-        error = args[1]
-
+    error = args[1] if len(args) == 3 else None
     _finish_span(tracer, handler, error)
     return func(*args, **kwargs)
 
@@ -270,11 +267,7 @@ def _start_span(tracer, handler, start_time) -> _TraceContext:
     ctx = _TraceContext(activation, span, token)
     setattr(handler, _HANDLER_CONTEXT_KEY, ctx)
 
-    # finish handler is called after the response is sent back to
-    # the client so it is too late to inject trace response headers
-    # there.
-    propagator = get_global_response_propagator()
-    if propagator:
+    if propagator := get_global_response_propagator():
         propagator.inject(handler, setter=response_propagation_setter)
 
     return ctx

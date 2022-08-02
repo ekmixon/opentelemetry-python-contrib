@@ -77,11 +77,10 @@ class DatadogSpanExporter(SpanExporter):
     def __init__(
         self, agent_url=None, service=None, env=None, version=None, tags=None
     ):
-        self.agent_url = (
-            agent_url
-            if agent_url
-            else os.environ.get("DD_TRACE_AGENT_URL", DEFAULT_AGENT_URL)
+        self.agent_url = agent_url or os.environ.get(
+            "DD_TRACE_AGENT_URL", DEFAULT_AGENT_URL
         )
+
         self.service = service or os.environ.get("DD_SERVICE")
         self.env = env or os.environ.get("DD_ENV")
         self.version = version or os.environ.get("DD_VERSION")
@@ -101,9 +100,7 @@ class DatadogSpanExporter(SpanExporter):
             elif url_parsed.scheme == "unix":
                 self._agent_writer = AgentWriter(uds_path=url_parsed.path)
             else:
-                raise ValueError(
-                    "Unknown scheme `%s` for agent URL" % url_parsed.scheme
-                )
+                raise ValueError(f"Unknown scheme `{url_parsed.scheme}` for agent URL")
         return self._agent_writer
 
     def export(self, spans):
@@ -161,7 +158,7 @@ class DatadogSpanExporter(SpanExporter):
 
             # combine resource attributes and span attributes, don't modify existing span attributes
             combined_span_tags = {}
-            combined_span_tags.update(resource_tags)
+            combined_span_tags |= resource_tags
             combined_span_tags.update(span.attributes)
 
             datadog_span.set_tags(combined_span_tags)
@@ -225,10 +222,11 @@ def _get_span_name(span):
     )
     span_kind_name = span.kind.name if span.kind else None
     name = (
-        "{}.{}".format(instrumentation_name, span_kind_name)
+        f"{instrumentation_name}.{span_kind_name}"
         if instrumentation_name and span_kind_name
         else span.name
     )
+
     return name
 
 
@@ -237,10 +235,11 @@ def _get_resource(span):
     if SpanAttributes.HTTP_METHOD in span.attributes:
         route = span.attributes.get(SpanAttributes.HTTP_ROUTE)
         return (
-            span.attributes[SpanAttributes.HTTP_METHOD] + " " + route
+            f"{span.attributes[SpanAttributes.HTTP_METHOD]} {route}"
             if route
             else span.attributes[SpanAttributes.HTTP_METHOD]
         )
+
 
     return span.name
 
@@ -250,8 +249,7 @@ def _get_span_type(span):
     instrumentation_name = (
         span.instrumentation_info.name if span.instrumentation_info else None
     )
-    span_type = _INSTRUMENTATION_SPAN_TYPES.get(instrumentation_name)
-    return span_type
+    return _INSTRUMENTATION_SPAN_TYPES.get(instrumentation_name)
 
 
 def _get_exc_info(span):
@@ -262,8 +260,7 @@ def _get_exc_info(span):
 
 def _get_origin(span):
     ctx = span.get_span_context()
-    origin = ctx.trace_state.get(DD_ORIGIN)
-    return origin
+    return ctx.trace_state.get(DD_ORIGIN)
 
 
 def _get_sampling_rate(span):

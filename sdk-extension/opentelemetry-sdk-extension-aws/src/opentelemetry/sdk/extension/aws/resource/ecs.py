@@ -45,9 +45,9 @@ class AwsEcsResourceDetector(ResourceDetector):
             container_id = ""
             try:
                 with open(
-                    "/proc/self/cgroup", encoding="utf8"
-                ) as container_info_file:
-                    for raw_line in container_info_file.readlines():
+                                "/proc/self/cgroup", encoding="utf8"
+                            ) as container_info_file:
+                    for raw_line in container_info_file:
                         line = raw_line.strip()
                         if len(line) > _CONTAINER_ID_LENGTH:
                             container_id = line[-_CONTAINER_ID_LENGTH:]
@@ -64,7 +64,6 @@ class AwsEcsResourceDetector(ResourceDetector):
                     ResourceAttributes.CONTAINER_ID: container_id,
                 }
             )
-        # pylint: disable=broad-except
         except Exception as exception:
             if self.raise_on_error:
                 raise exception

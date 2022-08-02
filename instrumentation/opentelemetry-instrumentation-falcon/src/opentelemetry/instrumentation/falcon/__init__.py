@@ -270,7 +270,7 @@ class _TraceMiddleware:
                 reason = "NotFound"
             else:
                 status = "500"
-                reason = "{}: {}".format(exc_type.__name__, exc)
+                reason = f"{exc_type.__name__}: {exc}"
 
         status = status.split(" ")[0]
         try:
@@ -286,8 +286,7 @@ class _TraceMiddleware:
                 )
             )
 
-        propagator = get_global_response_propagator()
-        if propagator:
+        if propagator := get_global_response_propagator():
             propagator.inject(resp, setter=_response_propagation_setter)
 
         if self._response_hook:

@@ -141,6 +141,4 @@ def format_span_id(span_id: int) -> str:
 def extract_first_element(
     items: typing.Iterable[CarrierT],
 ) -> typing.Optional[CarrierT]:
-    if items is None:
-        return None
-    return next(iter(items), None)
+    return None if items is None else next(iter(items), None)

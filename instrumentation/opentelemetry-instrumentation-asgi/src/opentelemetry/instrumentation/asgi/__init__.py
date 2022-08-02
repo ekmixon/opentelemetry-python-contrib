@@ -65,9 +65,7 @@ class ASGIGetter(Getter):
             for (_key, _value) in headers
             if _key.decode("utf8") == key
         ]
-        if not decoded:
-            return None
-        return decoded
+        return decoded or None
 
     def keys(self, carrier: dict) -> typing.List[str]:
         return list(carrier.keys())
@@ -84,7 +82,7 @@ def collect_request_attributes(scope):
     if query_string and http_url:
         if isinstance(query_string, bytes):
             query_string = query_string.decode("utf8")
-        http_url = http_url + ("?" + urllib.parse.unquote(query_string))
+        http_url = f"{http_url}?{urllib.parse.unquote(query_string)}"
 
     result = {
         SpanAttributes.HTTP_SCHEME: scope.get("scheme"),
@@ -94,17 +92,14 @@ def collect_request_attributes(scope):
         SpanAttributes.HTTP_TARGET: scope.get("path"),
         SpanAttributes.HTTP_URL: remove_url_credentials(http_url),
     }
-    http_method = scope.get("method")
-    if http_method:
+    if http_method := scope.get("method"):
         result[SpanAttributes.HTTP_METHOD] = http_method
 
-    http_host_value_list = asgi_getter.get(scope, "host")
-    if http_host_value_list:
+    if http_host_value_list := asgi_getter.get(scope, "host"):
         result[SpanAttributes.HTTP_SERVER_NAME] = ",".join(
             http_host_value_list
         )
-    http_user_agent = asgi_getter.get(scope, "user-agent")
-    if http_user_agent:
+    if http_user_agent := asgi_getter.get(scope, "user-agent"):
         result[SpanAttributes.HTTP_USER_AGENT] = http_user_agent[0]
 
     if "client" in scope and scope["client"] is not None:
@@ -121,7 +116,7 @@ def get_host_port_url_tuple(scope):
     """Returns (host, port, full_url) tuple."""
     server = scope.get("server") or ["0.0.0.0", 80]
     port = server[1]
-    server_host = server[0] + (":" + str(port) if port != 80 else "")
+    server_host = server[0] + (f":{str(port)}" if port != 80 else "")
     full_path = scope.get("root_path", "") + scope.get("path", "")
     http_url = scope.get("scheme", "http") + "://" + server_host + full_path
     return server_host, port, http_url
@@ -137,9 +132,10 @@ def set_status_code(span, status_code):
         span.set_status(
             Status(
                 StatusCode.ERROR,
-                "Non-integer HTTP status: " + repr(status_code),
+                f"Non-integer HTTP status: {repr(status_code)}",
             )
         )
+
     else:
         span.set_attribute(SpanAttributes.HTTP_STATUS_CODE, status_code)
         span.set_status(Status(http_status_to_status_code(status_code)))
@@ -152,9 +148,11 @@ def get_default_span_details(scope: dict) -> Tuple[str, dict]:
     Returns:
         a tuple of the span name, and any attributes to attach to the span.
     """
-    span_name = scope.get("path", "").strip() or "HTTP {}".format(
-        scope.get("method", "").strip()
+    span_name = (
+        scope.get("path", "").strip()
+        or f'HTTP {scope.get("method", "").strip()}'
     )
+
 
     return span_name, {}
 

@@ -182,10 +182,8 @@ def _instrument(
 def _get_url_open_arg(name: str, args: typing.List, kwargs: typing.Mapping):
     arg_idx = _URL_OPEN_ARG_TO_INDEX_MAPPING.get(name)
     if arg_idx is not None:
-        try:
+        with contextlib.suppress(IndexError):
             return args[arg_idx]
-        except IndexError:
-            pass
     return kwargs.get(name)
 
 
@@ -199,14 +197,12 @@ def _get_url(
     if not url_or_path.startswith("/"):
         url = url_or_path
     else:
-        url = instance.scheme + "://" + instance.host
+        url = f"{instance.scheme}://{instance.host}"
         if _should_append_port(instance.scheme, instance.port):
-            url += ":" + str(instance.port)
+            url += f":{str(instance.port)}"
         url += url_or_path
 
-    if url_filter:
-        return url_filter(url)
-    return url
+    return url_filter(url) if url_filter else url
 
 
 def _should_append_port(scheme: str, port: typing.Optional[int]) -> bool:
@@ -214,9 +210,7 @@ def _should_append_port(scheme: str, port: typing.Optional[int]) -> bool:
         return False
     if scheme == "http" and port == 80:
         return False
-    if scheme == "https" and port == 443:
-        return False
-    return True
+    return scheme != "https" or port != 443
 
 
 def _prepare_headers(urlopen_kwargs: typing.Dict) -> typing.Dict:

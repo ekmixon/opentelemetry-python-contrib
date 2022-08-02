@@ -30,10 +30,7 @@ def _normalize_vendor(vendor):
     if "sqlite" in vendor:
         return "sqlite"
 
-    if "postgres" in vendor or vendor == "psycopg2":
-        return "postgresql"
-
-    return vendor
+    return "postgresql" if "postgres" in vendor or vendor == "psycopg2" else vendor
 
 
 def _get_tracer(engine, tracer_provider=None):
@@ -85,9 +82,7 @@ class EngineTracer:
             parts.append(statement.split()[0])
         if db_name:
             parts.append(db_name)
-        if not parts:
-            return self.vendor
-        return " ".join(parts)
+        return " ".join(parts) if parts else self.vendor
 
     # pylint: disable=unused-argument
     def _before_cur_exec(self, conn, cursor, statement, *args):
@@ -159,8 +154,7 @@ def _get_attributes_from_cursor(vendor, cursor, attrs):
         from psycopg2.extensions import parse_dsn
 
         if hasattr(cursor, "connection") and hasattr(cursor.connection, "dsn"):
-            dsn = getattr(cursor.connection, "dsn", None)
-            if dsn:
+            if dsn := getattr(cursor.connection, "dsn", None):
                 data = parse_dsn(dsn)
                 attrs[SpanAttributes.DB_NAME] = data.get("dbname")
                 attrs[SpanAttributes.NET_PEER_NAME] = data.get("host")

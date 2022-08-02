@@ -21,7 +21,7 @@ class InstrumentationTest:
     def _hello_endpoint(helloid):
         if helloid == 500:
             raise ValueError(":-(")
-        return "Hello: " + str(helloid)
+        return f"Hello: {str(helloid)}"
 
     def _common_initialization(self):
         def excluded_endpoint():

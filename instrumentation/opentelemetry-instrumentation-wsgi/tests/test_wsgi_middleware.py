@@ -125,7 +125,7 @@ class TestWsgiApplication(WsgiTestBase):
             SpanAttributes.HTTP_URL: "http://127.0.0.1/",
             SpanAttributes.HTTP_STATUS_CODE: 200,
         }
-        expected_attributes.update(span_attributes or {})
+        expected_attributes |= (span_attributes or {})
         if http_method is not None:
             expected_attributes[SpanAttributes.HTTP_METHOD] = http_method
         self.assertEqual(span_list[0].attributes, expected_attributes)
@@ -262,7 +262,7 @@ class TestWsgiAttributes(unittest.TestCase):
 
         attrs = otel_wsgi.collect_request_attributes(self.environ)
         self.assertGreaterEqual(
-            attrs.items(), expected.items(), expected_url + " expected."
+            attrs.items(), expected.items(), f"{expected_url} expected."
         )
 
     def test_request_attributes_with_partial_raw_uri(self):

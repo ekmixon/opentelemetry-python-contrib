@@ -64,8 +64,8 @@ class CommandTracer(monitoring.CommandListener):
         name = event.command_name
         statement = event.command_name
         if command:
-            name += "." + str(command)
-            statement += " " + str(command)
+            name += f".{str(command)}"
+            statement += f" {str(command)}"
 
         try:
             span = self._tracer.start_span(name, kind=SpanKind.CLIENT)

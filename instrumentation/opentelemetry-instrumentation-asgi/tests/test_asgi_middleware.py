@@ -48,9 +48,11 @@ async def websocket_app(scope, receive, send):
         if message.get("type") == "websocket.connect":
             await send({"type": "websocket.accept"})
 
-        if message.get("type") == "websocket.receive":
-            if message.get("text") == "ping":
-                await send({"type": "websocket.send", "text": "pong"})
+        if (
+            message.get("type") == "websocket.receive"
+            and message.get("text") == "ping"
+        ):
+            await send({"type": "websocket.send", "text": "pong"})
 
         if message.get("type") == "websocket.disconnect":
             break
@@ -409,8 +411,7 @@ class TestAsgiAttributes(unittest.TestCase):
 
     def test_request_attributes(self):
         self.scope["query_string"] = b"foo=bar"
-        headers = []
-        headers.append(("host".encode("utf8"), "test".encode("utf8")))
+        headers = [("host".encode("utf8"), "test".encode("utf8"))]
         self.scope["headers"] = headers
 
         attrs = otel_asgi.collect_request_attributes(self.scope)

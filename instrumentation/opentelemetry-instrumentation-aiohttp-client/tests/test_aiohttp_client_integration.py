@@ -98,7 +98,7 @@ class TestAioHttpIntegration(TestBase):
 
         async def default_handler(request):
             assert "traceparent" in request.headers
-            return aiohttp.web.Response(status=int(status_code))
+            return aiohttp.web.Response(status=status_code)
 
         async def client_request(server: aiohttp.test_utils.TestServer):
             async with aiohttp.test_utils.TestClient(
@@ -132,16 +132,13 @@ class TestAioHttpIntegration(TestBase):
                             (span_status, None),
                             {
                                 SpanAttributes.HTTP_METHOD: "GET",
-                                SpanAttributes.HTTP_URL: "http://{}:{}/test-path?query=param#foobar".format(
-                                    host, port
-                                ),
-                                SpanAttributes.HTTP_STATUS_CODE: int(
-                                    status_code
-                                ),
+                                SpanAttributes.HTTP_URL: f"http://{host}:{port}/test-path?query=param#foobar",
+                                SpanAttributes.HTTP_STATUS_CODE: int(status_code),
                             },
                         )
                     ]
                 )
+
 
                 self.memory_exporter.clear()
 
@@ -371,9 +368,8 @@ class TestAioHttpClientInstrumentor(TestBase):
         AioHttpClientInstrumentor().uninstrument()
 
     @staticmethod
-    # pylint:disable=unused-argument
     async def default_handler(request):
-        return aiohttp.web.Response(status=int(200))
+        return aiohttp.web.Response(status=200)
 
     @staticmethod
     def get_default_request(url: str = URL):
@@ -388,9 +384,7 @@ class TestAioHttpClientInstrumentor(TestBase):
         self.assertEqual(num_spans, len(finished_spans))
         if num_spans == 0:
             return None
-        if num_spans == 1:
-            return finished_spans[0]
-        return finished_spans
+        return finished_spans[0] if num_spans == 1 else finished_spans
 
     def test_instrument(self):
         host, port = run_with_test_server(
@@ -399,9 +393,10 @@ class TestAioHttpClientInstrumentor(TestBase):
         span = self.assert_spans(1)
         self.assertEqual("GET", span.attributes[SpanAttributes.HTTP_METHOD])
         self.assertEqual(
-            "http://{}:{}/test-path".format(host, port),
+            f"http://{host}:{port}/test-path",
             span.attributes[SpanAttributes.HTTP_URL],
         )
+
         self.assertEqual(200, span.attributes[SpanAttributes.HTTP_STATUS_CODE])
 
     def test_instrument_with_existing_trace_config(self):

@@ -145,11 +145,7 @@ def _instrument(
     @functools.wraps(opener_open)
     def instrumented_open(opener, fullurl, data=None, timeout=None):
 
-        if isinstance(fullurl, str):
-            request_ = Request(fullurl, data)
-        else:
-            request_ = fullurl
-
+        request_ = Request(fullurl, data) if isinstance(fullurl, str) else fullurl
         def get_or_create_headers():
             return getattr(request_, "headers", {})
 
@@ -161,8 +157,8 @@ def _instrument(
         )
 
     def _instrumented_open_call(
-        _, request, call_wrapped, get_or_create_headers
-    ):  # pylint: disable=too-many-locals
+            _, request, call_wrapped, get_or_create_headers
+        ):  # pylint: disable=too-many-locals
         if context.get_value(
             _SUPPRESS_INSTRUMENTATION_KEY
         ) or context.get_value(_SUPPRESS_HTTP_INSTRUMENTATION_KEY):
@@ -181,8 +177,8 @@ def _instrument(
         }
 
         with tracer.start_as_current_span(
-            span_name, kind=SpanKind.CLIENT
-        ) as span:
+                    span_name, kind=SpanKind.CLIENT
+                ) as span:
             exception = None
             if callable(request_hook):
                 request_hook(span, request)
@@ -213,7 +209,7 @@ def _instrument(
                     span.set_attribute(SpanAttributes.HTTP_STATUS_CODE, code_)
                     span.set_status(Status(http_status_to_status_code(code_)))
 
-                ver_ = str(getattr(result, "version", ""))
+                ver_ = getattr(result, "version", "")
                 if ver_:
                     labels[SpanAttributes.HTTP_FLAVOR] = "{}.{}".format(
                         ver_[:1], ver_[:-1]

@@ -193,10 +193,11 @@ class GrpcInstrumentorClient(BaseInstrumentor):
             return ("insecure_channel",)
 
         # handle modern arguments
-        types = []
-        for ctype in ("secure_channel", "insecure_channel"):
-            if kwargs.get(ctype, True):
-                types.append(ctype)
+        types = [
+            ctype
+            for ctype in ("secure_channel", "insecure_channel")
+            if kwargs.get(ctype, True)
+        ]
 
         return tuple(types)
 

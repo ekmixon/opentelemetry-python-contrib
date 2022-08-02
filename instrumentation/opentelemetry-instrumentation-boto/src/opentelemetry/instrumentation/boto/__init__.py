@@ -62,13 +62,10 @@ SERVICE_PARAMS_BLOCK_LIST = {"s3": ["params.Body"]}
 
 
 def _get_instance_region_name(instance):
-    region = getattr(instance, "region", None)
-
-    if not region:
+    if region := getattr(instance, "region", None):
+        return region.split(":")[1] if isinstance(region, str) else region.name
+    else:
         return None
-    if isinstance(region, str):
-        return region.split(":")[1]
-    return region.name
 
 
 class BotoInstrumentor(BaseInstrumentor):
@@ -123,9 +120,7 @@ class BotoInstrumentor(BaseInstrumentor):
 
         endpoint_name = getattr(instance, "host").split(".")[0]
 
-        with self._tracer.start_as_current_span(
-            "{}.command".format(endpoint_name), kind=SpanKind.CONSUMER,
-        ) as span:
+        with self._tracer.start_as_current_span(f"{endpoint_name}.command", kind=SpanKind.CONSUMER) as span:
             span.set_attribute("endpoint", endpoint_name)
             if args:
                 http_method = args[0]
@@ -225,10 +220,7 @@ def add_span_arg_tags(span, aws_service, args, args_names, args_traced):
         """Truncate values which are bytes and greater than `max_len`.
         Useful for parameters like "Body" in `put_object` operations.
         """
-        if isinstance(value, bytes) and len(value) > max_len:
-            return b"..."
-
-        return value
+        return b"..." if isinstance(value, bytes) and len(value) > max_len else value
 
     if not span.is_recording():
         return
@@ -236,11 +228,12 @@ def add_span_arg_tags(span, aws_service, args, args_names, args_traced):
     # Do not trace `Key Management Service` or `Secure Token Service` API calls
     # over concerns of security leaks.
     if aws_service not in {"kms", "sts"}:
-        tags = dict(
-            (name, value)
+        tags = {
+            name: value
             for (name, value) in zip(args_names, args)
             if name in args_traced
-        )
+        }
+
         tags = flatten_dict(tags)
 
         for param_key, value in tags.items():

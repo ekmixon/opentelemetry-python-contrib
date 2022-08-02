@@ -24,7 +24,7 @@ class InstrumentationTest:
         helloid = int(request.matchdict["helloid"])
         if helloid == 500:
             raise exc.HTTPInternalServerError()
-        return Response("Hello: " + str(helloid))
+        return Response(f"Hello: {helloid}")
 
     def _common_initialization(self, config):
         # pylint: disable=unused-argument

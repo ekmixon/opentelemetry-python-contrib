@@ -103,16 +103,9 @@ class AsyncCursorTracer(CursorTracer):
         *args: typing.Tuple[typing.Any, typing.Any],
         **kwargs: typing.Dict[typing.Any, typing.Any]
     ):
-        name = ""
-        if args:
-            name = self.get_operation_name(cursor, args)
-
+        name = self.get_operation_name(cursor, args) if args else ""
         if not name:
-            name = (
-                self._db_api_integration.database
-                if self._db_api_integration.database
-                else self._db_api_integration.name
-            )
+            name = self._db_api_integration.database or self._db_api_integration.name
 
         with self._db_api_integration._tracer.start_as_current_span(
             name, kind=SpanKind.CLIENT

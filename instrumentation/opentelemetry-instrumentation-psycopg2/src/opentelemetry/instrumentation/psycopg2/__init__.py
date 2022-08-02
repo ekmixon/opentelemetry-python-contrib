@@ -150,10 +150,7 @@ class CursorTracer(dbapi.CursorTracer):
         if isinstance(statement, Composed):
             statement = statement.as_string(cursor)
 
-        if isinstance(statement, str):
-            return statement.split()[0]
-
-        return ""
+        return statement.split()[0] if isinstance(statement, str) else ""
 
     def get_statement(self, cursor, args):
         if not args:

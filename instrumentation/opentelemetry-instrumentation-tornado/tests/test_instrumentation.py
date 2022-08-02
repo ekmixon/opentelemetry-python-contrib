@@ -45,8 +45,7 @@ class TornadoTest(AsyncHTTPTestCase, TestBase):
     # pylint:disable=no-self-use
     def get_app(self):
         tracer = trace.get_tracer(__name__)
-        app = make_app(tracer)
-        return app
+        return make_app(tracer)
 
     def setUp(self):
         TornadoInstrumentor().instrument(
@@ -129,7 +128,7 @@ class TestTornadoInstrumentation(TornadoTest):
         self.assertEqual(manual.parent, server.context)
         self.assertEqual(manual.context.trace_id, client.context.trace_id)
 
-        self.assertEqual(server.name, "MainHandler." + method.lower())
+        self.assertEqual(server.name, f"MainHandler.{method.lower()}")
         self.assertTrue(server.parent.is_remote)
         self.assertNotEqual(server.parent, client.context)
         self.assertEqual(server.parent.span_id, client.context.span_id)
@@ -202,7 +201,7 @@ class TestTornadoInstrumentation(TornadoTest):
         self.assertEqual(sub_wrapper.parent, server.context)
         self.assertEqual(sub_wrapper.context.trace_id, client.context.trace_id)
 
-        self.assertEqual(server.name, handler_name + ".get")
+        self.assertEqual(server.name, f"{handler_name}.get")
         self.assertTrue(server.parent.is_remote)
         self.assertNotEqual(server.parent, client.context)
         self.assertEqual(server.parent.span_id, client.context.span_id)

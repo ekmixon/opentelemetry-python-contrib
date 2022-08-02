@@ -30,10 +30,11 @@ def _normalize_request(args, kwargs):
     if not isinstance(req, str):
         return (args, kwargs)
 
-    new_kwargs = {}
-    for param in ("callback", "raise_error"):
-        if param in kwargs:
-            new_kwargs[param] = kwargs.pop(param)
+    new_kwargs = {
+        param: kwargs.pop(param)
+        for param in ("callback", "raise_error")
+        if param in kwargs
+    }
 
     req = HTTPRequest(req, **kwargs)
     new_args = [req]
@@ -88,7 +89,7 @@ def _finish_tracing_callback(future, span, response_hook):
     if span.is_recording() and exc:
         if isinstance(exc, HTTPError):
             status_code = exc.code
-        description = "{}: {}".format(type(exc).__name__, exc)
+        description = f"{type(exc).__name__}: {exc}"
     else:
         status_code = future.result().code
 

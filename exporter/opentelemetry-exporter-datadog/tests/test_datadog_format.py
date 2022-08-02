@@ -40,8 +40,8 @@ class TestDatadogFormat(unittest.TestCase):
     def test_extract_malformed_headers_to_explicit_ctx(self):
         """Test with no Datadog headers"""
         orig_ctx = Context({"k1": "v1"})
-        malformed_trace_id_key = FORMAT.TRACE_ID_KEY + "-x"
-        malformed_parent_id_key = FORMAT.PARENT_ID_KEY + "-x"
+        malformed_trace_id_key = f"{FORMAT.TRACE_ID_KEY}-x"
+        malformed_parent_id_key = f"{FORMAT.PARENT_ID_KEY}-x"
         context = FORMAT.extract(
             {
                 malformed_trace_id_key: self.serialized_trace_id,
@@ -52,8 +52,8 @@ class TestDatadogFormat(unittest.TestCase):
         self.assertDictEqual(orig_ctx, context)
 
     def test_extract_malformed_headers_to_implicit_ctx(self):
-        malformed_trace_id_key = FORMAT.TRACE_ID_KEY + "-x"
-        malformed_parent_id_key = FORMAT.PARENT_ID_KEY + "-x"
+        malformed_trace_id_key = f"{FORMAT.TRACE_ID_KEY}-x"
+        malformed_parent_id_key = f"{FORMAT.PARENT_ID_KEY}-x"
         context = FORMAT.extract(
             {
                 malformed_trace_id_key: self.serialized_trace_id,
@@ -208,9 +208,6 @@ class TestDatadogFormat(unittest.TestCase):
             with tracer.start_as_current_span("child"):
                 FORMAT.inject({}, setter=mock_setter)
 
-        inject_fields = set()
-
-        for call in mock_setter.mock_calls:
-            inject_fields.add(call[1][1])
+        inject_fields = {call[1][1] for call in mock_setter.mock_calls}
 
         self.assertEqual(FORMAT.fields, inject_fields)

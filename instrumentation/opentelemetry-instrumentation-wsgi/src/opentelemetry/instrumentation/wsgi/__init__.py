@@ -117,9 +117,7 @@ class WSGIGetter(Getter):
         """
         environ_key = "HTTP_" + key.upper().replace("-", "_")
         value = carrier.get(environ_key)
-        if value is not None:
-            return [value]
-        return None
+        return [value] if value is not None else None
 
     def keys(self, carrier):
         return [
@@ -148,8 +146,8 @@ def collect_request_attributes(environ):
     }
 
     host_port = environ.get("SERVER_PORT")
-    if host_port is not None and not host_port == "":
-        result.update({SpanAttributes.NET_HOST_PORT: int(host_port)})
+    if host_port is not None and host_port != "":
+        result[SpanAttributes.NET_HOST_PORT] = int(host_port)
 
     setifnotnone(result, SpanAttributes.HTTP_HOST, environ.get("HTTP_HOST"))
     target = environ.get("RAW_URI")
@@ -187,7 +185,7 @@ def collect_request_attributes(environ):
 
 def add_response_attributes(
     span, start_response_status, response_headers
-):  # pylint: disable=unused-argument
+):    # pylint: disable=unused-argument
     """Adds HTTP response attributes to span using the arguments
     passed to a PEP3333-conforming start_response callable."""
     if not span.is_recording():
@@ -200,9 +198,10 @@ def add_response_attributes(
         span.set_status(
             Status(
                 StatusCode.ERROR,
-                "Non-integer HTTP status: " + repr(status_code),
+                f"Non-integer HTTP status: {repr(status_code)}",
             )
         )
+
     else:
         span.set_attribute(SpanAttributes.HTTP_STATUS_CODE, status_code)
         span.set_status(Status(http_status_to_status_code(status_code)))
@@ -210,7 +209,7 @@ def add_response_attributes(
 
 def get_default_span_name(environ):
     """Default implementation for name_callback, returns HTTP {METHOD_NAME}."""
-    return "HTTP {}".format(environ.get("REQUEST_METHOD", "")).strip()
+    return f'HTTP {environ.get("REQUEST_METHOD", "")}'.strip()
 
 
 class OpenTelemetryMiddleware:
@@ -295,11 +294,9 @@ class OpenTelemetryMiddleware:
 def _end_span_after_iterating(iterable, span, tracer, token):
     try:
         with trace.use_span(span):
-            for yielded in iterable:
-                yield yielded
+            yield from iterable
     finally:
-        close = getattr(iterable, "close", None)
-        if close:
+        if close := getattr(iterable, "close", None):
             close()
         span.end()
         context.detach(token)

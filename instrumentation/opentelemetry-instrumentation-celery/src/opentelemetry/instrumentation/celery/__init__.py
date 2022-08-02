@@ -195,8 +195,7 @@ class CeleryInstrumentor(BaseInstrumentor):
 
         utils.attach_span(task, task_id, (span, activation), is_publish=True)
 
-        headers = kwargs.get("headers")
-        if headers:
+        if headers := kwargs.get("headers"):
             inject(headers)
 
     @staticmethod

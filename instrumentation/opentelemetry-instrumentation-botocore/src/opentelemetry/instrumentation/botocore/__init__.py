@@ -154,9 +154,7 @@ class BotocoreInstrumentor(BaseInstrumentor):
         ):
             BotocoreInstrumentor._patch_lambda_invoke(api_params)
 
-        with self._tracer.start_as_current_span(
-            "{}".format(service_name), kind=SpanKind.CLIENT,
-        ) as span:
+        with self._tracer.start_as_current_span(f"{service_name}", kind=SpanKind.CLIENT) as span:
             if span.is_recording():
                 span.set_attribute("aws.operation", operation_name)
                 span.set_attribute("aws.region", instance.meta.region_name)
@@ -182,36 +180,35 @@ class BotocoreInstrumentor(BaseInstrumentor):
             if error:
                 result = error.response
 
-            if span.is_recording():
-                if "ResponseMetadata" in result:
-                    metadata = result["ResponseMetadata"]
-                    req_id = None
-                    if "RequestId" in metadata:
-                        req_id = metadata["RequestId"]
-                    elif "HTTPHeaders" in metadata:
-                        headers = metadata["HTTPHeaders"]
-                        if "x-amzn-RequestId" in headers:
-                            req_id = headers["x-amzn-RequestId"]
-                        elif "x-amz-request-id" in headers:
-                            req_id = headers["x-amz-request-id"]
-                        elif "x-amz-id-2" in headers:
-                            req_id = headers["x-amz-id-2"]
+            if span.is_recording() and "ResponseMetadata" in result:
+                metadata = result["ResponseMetadata"]
+                req_id = None
+                if "RequestId" in metadata:
+                    req_id = metadata["RequestId"]
+                elif "HTTPHeaders" in metadata:
+                    headers = metadata["HTTPHeaders"]
+                    if "x-amzn-RequestId" in headers:
+                        req_id = headers["x-amzn-RequestId"]
+                    elif "x-amz-request-id" in headers:
+                        req_id = headers["x-amz-request-id"]
+                    elif "x-amz-id-2" in headers:
+                        req_id = headers["x-amz-id-2"]
 
-                    if req_id:
-                        span.set_attribute(
-                            "aws.request_id", req_id,
-                        )
+                if req_id:
+                    span.set_attribute(
+                        "aws.request_id", req_id,
+                    )
 
-                    if "RetryAttempts" in metadata:
-                        span.set_attribute(
-                            "retry_attempts", metadata["RetryAttempts"],
-                        )
+                if "RetryAttempts" in metadata:
+                    span.set_attribute(
+                        "retry_attempts", metadata["RetryAttempts"],
+                    )
 
-                    if "HTTPStatusCode" in metadata:
-                        span.set_attribute(
-                            SpanAttributes.HTTP_STATUS_CODE,
-                            metadata["HTTPStatusCode"],
-                        )
+                if "HTTPStatusCode" in metadata:
+                    span.set_attribute(
+                        SpanAttributes.HTTP_STATUS_CODE,
+                        metadata["HTTPStatusCode"],
+                    )
 
             if error:
                 raise error

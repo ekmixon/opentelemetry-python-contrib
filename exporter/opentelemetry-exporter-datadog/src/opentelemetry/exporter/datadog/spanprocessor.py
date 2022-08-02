@@ -163,7 +163,7 @@ class DatadogExportSpanProcessor(SpanProcessor):
                         del self.traces_spans_count[trace_id]
                         del self.traces_spans_ended_count[trace_id]
 
-        if len(export_trace_ids) > 0:
+        if export_trace_ids:
             token = attach(set_value(_SUPPRESS_INSTRUMENTATION_KEY, True))
 
             for trace_id in export_trace_ids:

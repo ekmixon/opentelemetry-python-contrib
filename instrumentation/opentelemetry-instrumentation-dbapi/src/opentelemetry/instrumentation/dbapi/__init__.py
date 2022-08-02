@@ -258,15 +258,13 @@ class DatabaseApiIntegration:
     def get_connection_attributes(self, connection):
         # Populate span fields using connection
         for key, value in self.connection_attributes.items():
-            # Allow attributes nested in connection object
-            attribute = functools.reduce(
+            if attribute := functools.reduce(
                 lambda attribute, attribute_value: getattr(
                     attribute, attribute_value, None
                 ),
                 value.split("."),
                 connection,
-            )
-            if attribute:
+            ):
                 self.connection_props[key] = attribute
         self.name = self.database_system
         self.database = self.connection_props.get("database", "")
@@ -274,7 +272,7 @@ class DatabaseApiIntegration:
             # PyMySQL encodes names with utf-8
             if hasattr(self.database, "decode"):
                 self.database = self.database.decode(errors="ignore")
-            self.name += "." + self.database
+            self.name += f".{self.database}"
         user = self.connection_props.get("user")
         # PyMySQL encodes this data
         if user and isinstance(user, bytes):
@@ -344,9 +342,7 @@ class CursorTracer:
             span.set_attribute("db.statement.parameters", str(args[1]))
 
     def get_operation_name(self, cursor, args):  # pylint: disable=no-self-use
-        if args and isinstance(args[0], str):
-            return args[0].split()[0]
-        return ""
+        return args[0].split()[0] if args and isinstance(args[0], str) else ""
 
     def get_statement(self, cursor, args):  # pylint: disable=no-self-use
         if not args:
@@ -365,11 +361,7 @@ class CursorTracer:
     ):
         name = self.get_operation_name(cursor, args)
         if not name:
-            name = (
-                self._db_api_integration.database
-                if self._db_api_integration.database
-                else self._db_api_integration.name
-            )
+            name = self._db_api_integration.database or self._db_api_integration.name
 
         with self._db_api_integration._tracer.start_as_current_span(
             name, kind=SpanKind.CLIENT

@@ -268,10 +268,14 @@ def parse_args(args=None):
 
 def find_projectroot(search_start=Path(".")):
     root = search_start.resolve()
-    for root in chain((root,), root.parents):
-        if any((root / marker).exists() for marker in (".git", "tox.ini")):
-            return root
-    return None
+    return next(
+        (
+            root
+            for root in chain((root,), root.parents)
+            if any((root / marker).exists() for marker in (".git", "tox.ini"))
+        ),
+        None,
+    )
 
 
 def find_targets_unordered(rootpath):
@@ -382,15 +386,12 @@ def runsubprocess(dry_run, params, *args, **kwargs):
     # Only this would find the "correct" python.exe.
 
     params = list(params)
-    executable = shutil.which(params[0])
-    if executable:
+    if executable := shutil.which(params[0]):
         params[0] = executable
     try:
         return subprocess_run(params, *args, check=check, **kwargs)
     except OSError as exc:
-        raise ValueError(
-            "Failed executing " + repr(params) + ": " + str(exc)
-        ) from exc
+        raise ValueError(f"Failed executing {repr(params)}: {str(exc)}") from exc
 
 
 def execute_args(args):
@@ -474,7 +475,7 @@ def install_args(args):
     if args.with_test_deps:
         extras.append("test")
     if extras:
-        allfmt += "[{}]".format(",".join(extras))
+        allfmt += f'[{",".join(extras)}]'
     # note the trailing single quote, to close the quote opened above.
     allfmt += "'"
 
@@ -548,10 +549,8 @@ def update_changelog(path, version, new_entry):
     try:
         with open(path) as changelog:
             text = changelog.read()
-            if "## [{}]".format(version) in text:
-                raise AttributeError(
-                    "{} already contans version {}".format(path, version)
-                )
+            if f"## [{version}]" in text:
+                raise AttributeError(f"{path} already contans version {version}")
         with open(path) as changelog:
             for line in changelog:
                 if line.startswith("## [Unreleased]"):
@@ -562,11 +561,11 @@ def update_changelog(path, version, new_entry):
                     unreleased_changes = True
 
     except FileNotFoundError:
-        print("file missing: {}".format(path))
+        print(f"file missing: {path}")
         return
 
     if unreleased_changes:
-        print("updating: {}".format(path))
+        print(f"updating: {path}")
         text = re.sub(r"## \[Unreleased\].*", new_entry, text)
         with open(path, "w") as changelog:
             changelog.write(text)
@@ -585,7 +584,7 @@ def update_changelogs(version):
     try:
         update_changelog("./CHANGELOG.md", version, new_entry)
     except Exception as err:  # pylint: disable=broad-except
-        print(str(err))
+        print(err)
         errors = True
 
     if errors:
@@ -593,10 +592,14 @@ def update_changelogs(version):
 
 
 def find(name, path):
-    for root, _, files in os.walk(path):
-        if name in files:
-            return os.path.join(root, name)
-    return None
+    return next(
+        (
+            os.path.join(root, name)
+            for root, _, files in os.walk(path)
+            if name in files
+        ),
+        None,
+    )
 
 
 def filter_packages(targets, packages):
@@ -617,10 +620,7 @@ def update_version_files(targets, version, packages):
     print("updating version.py files")
     targets = filter_packages(targets, packages)
     update_files(
-        targets,
-        "version.py",
-        "__version__ .*",
-        '__version__ = "{}"'.format(version),
+        targets, "version.py", "__version__ .*", f'__version__ = "{version}"'
     )
 
 
@@ -638,7 +638,7 @@ def update_dependencies(targets, version, packages):
         update_files(
             targets,
             "setup.cfg",
-            r"({}.*)==(.*)".format(package_name),
+            f"({package_name}.*)==(.*)",
             r"\1== " + version,
         )
 
@@ -648,14 +648,12 @@ def update_files(targets, filename, search, replace):
     for target in targets:
         curr_file = find(filename, target)
         if curr_file is None:
-            print("file missing: {}/{}".format(target, filename))
+            print(f"file missing: {target}/{filename}")
             continue
 
-        with open(curr_file) as _file:
-            text = _file.read()
-
+        text = Path(curr_file).read_text()
         if replace in text:
-            print("{} already contains {}".format(curr_file, replace))
+            print(f"{curr_file} already contains {replace}")
             continue
 
         with open(curr_file, "w") as _file:
@@ -681,7 +679,7 @@ def release_args(args):
         packages = None
         if "packages" in mcfg:
             packages = mcfg["packages"].split()
-        print("update {} packages to {}".format(group, version))
+        print(f"update {group} packages to {version}")
         update_dependencies(targets, version, packages)
         update_version_files(targets, version, packages)
 

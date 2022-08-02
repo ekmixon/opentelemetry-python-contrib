@@ -124,14 +124,9 @@ class _DjangoMiddleware(MiddlewareMixin):
 
             # Instead of using `view_name`, better to use `_func_name` as some applications can use similar
             # view names in different modules
-            if hasattr(match, "_func_name"):
-                return match._func_name  # pylint: disable=protected-access
-
-            # Fallback for safety as `_func_name` private field
-            return match.view_name
-
+            return match._func_name if hasattr(match, "_func_name") else match.view_name
         except Resolver404:
-            return "HTTP {}".format(request.method)
+            return f"HTTP {request.method}"
 
     def process_request(self, request):
         # request.META is a dictionary containing all available HTTP headers
@@ -191,10 +186,8 @@ class _DjangoMiddleware(MiddlewareMixin):
             span = request.META[self._environ_span_key]
 
             if span.is_recording():
-                match = getattr(request, "resolver_match", None)
-                if match:
-                    route = getattr(match, "route", None)
-                    if route:
+                if match := getattr(request, "resolver_match", None):
+                    if route := getattr(match, "route", None):
                         span.set_attribute(SpanAttributes.HTTP_ROUTE, route)
 
     def process_exception(self, request, exception):
@@ -213,13 +206,11 @@ class _DjangoMiddleware(MiddlewareMixin):
 
         if activation and span:
             add_response_attributes(
-                span,
-                "{} {}".format(response.status_code, response.reason_phrase),
-                response,
+                span, f"{response.status_code} {response.reason_phrase}", response
             )
 
-            propagator = get_global_response_propagator()
-            if propagator:
+
+            if propagator := get_global_response_propagator():
                 propagator.inject(response)
 
             # record any exceptions raised while processing the request

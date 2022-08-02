@@ -113,8 +113,8 @@ def _instrument(tracer, span_callback=None, name_callback=None):
         )
 
     def _instrumented_requests_call(
-        method: str, url: str, call_wrapped, get_or_create_headers
-    ):
+            method: str, url: str, call_wrapped, get_or_create_headers
+        ):
         if context.get_value(
             _SUPPRESS_INSTRUMENTATION_KEY
         ) or context.get_value(_SUPPRESS_HTTP_INSTRUMENTATION_KEY):
@@ -132,8 +132,8 @@ def _instrument(tracer, span_callback=None, name_callback=None):
         url = remove_url_credentials(url)
 
         with tracer.start_as_current_span(
-            span_name, kind=SpanKind.CLIENT
-        ) as span:
+                    span_name, kind=SpanKind.CLIENT
+                ) as span:
             exception = None
             if span.is_recording():
                 span.set_attribute(SpanAttributes.HTTP_METHOD, method)
@@ -153,14 +153,13 @@ def _instrument(tracer, span_callback=None, name_callback=None):
             finally:
                 context.detach(token)
 
-            if isinstance(result, Response):
-                if span.is_recording():
-                    span.set_attribute(
-                        SpanAttributes.HTTP_STATUS_CODE, result.status_code
-                    )
-                    span.set_status(
-                        Status(http_status_to_status_code(result.status_code))
-                    )
+            if isinstance(result, Response) and span.is_recording():
+                span.set_attribute(
+                    SpanAttributes.HTTP_STATUS_CODE, result.status_code
+                )
+                span.set_status(
+                    Status(http_status_to_status_code(result.status_code))
+                )
             if span_callback is not None:
                 span_callback(span, result)
 
@@ -201,7 +200,7 @@ def _uninstrument_from(instr_root, restore_as_bound_func=False):
 
 def get_default_span_name(method):
     """Default implementation for name_callback, returns HTTP {method_name}."""
-    return "HTTP {}".format(method).strip()
+    return f"HTTP {method}".strip()
 
 
 class RequestsInstrumentor(BaseInstrumentor):

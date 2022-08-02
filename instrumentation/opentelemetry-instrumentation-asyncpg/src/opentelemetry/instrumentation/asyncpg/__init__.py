@@ -64,11 +64,9 @@ def _hydrate_span_from_args(connection, query, parameters) -> dict:
     # https://github.com/MagicStack/asyncpg/blob/master/asyncpg/connection.py#L68
 
     params = getattr(connection, "_params", None)
-    dbname = getattr(params, "database", None)
-    if dbname:
+    if dbname := getattr(params, "database", None):
         span_attributes[SpanAttributes.DB_NAME] = dbname
-    user = getattr(params, "user", None)
-    if user:
+    if user := getattr(params, "user", None):
         span_attributes[SpanAttributes.DB_USER] = user
 
     # connection contains _addr attribute which is either a host/port tuple, or unix socket string
@@ -133,7 +131,7 @@ class AsyncPGInstrumentor(BaseInstrumentor):
 
         exception = None
         params = getattr(instance, "_params", {})
-        name = args[0] if args[0] else params.get("database", "postgresql")
+        name = args[0] or params.get("database", "postgresql")
 
         with self._tracer.start_as_current_span(
             name, kind=SpanKind.CLIENT

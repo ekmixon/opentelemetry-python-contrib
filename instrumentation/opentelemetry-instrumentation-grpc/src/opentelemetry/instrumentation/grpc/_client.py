@@ -105,16 +105,13 @@ class OpenTelemetryClientInterceptor(
         if context.get_value(_SUPPRESS_INSTRUMENTATION_KEY):
             return invoker(request, metadata)
 
-        if not metadata:
-            mutable_metadata = OrderedDict()
-        else:
-            mutable_metadata = OrderedDict(metadata)
+        mutable_metadata = OrderedDict(metadata) if metadata else OrderedDict()
         with self._start_span(
-            client_info.full_method,
-            end_on_exit=False,
-            record_exception=False,
-            set_status_on_exception=False,
-        ) as span:
+                client_info.full_method,
+                end_on_exit=False,
+                record_exception=False,
+                set_status_on_exception=False,
+            ) as span:
             result = None
             try:
                 inject(mutable_metadata, setter=_carrier_setter)
@@ -137,9 +134,10 @@ class OpenTelemetryClientInterceptor(
                 span.set_status(
                     Status(
                         status_code=StatusCode.ERROR,
-                        description="{}: {}".format(type(exc).__name__, exc),
+                        description=f"{type(exc).__name__}: {exc}",
                     )
                 )
+
                 span.record_exception(exc)
                 raise exc
             finally:
@@ -156,11 +154,7 @@ class OpenTelemetryClientInterceptor(
     def _intercept_server_stream(
         self, request_or_iterator, metadata, client_info, invoker
     ):
-        if not metadata:
-            mutable_metadata = OrderedDict()
-        else:
-            mutable_metadata = OrderedDict(metadata)
-
+        mutable_metadata = OrderedDict(metadata) if metadata else OrderedDict()
         with self._start_span(client_info.full_method) as span:
             inject(mutable_metadata, setter=_carrier_setter)
             metadata = tuple(mutable_metadata.items())
@@ -174,10 +168,7 @@ class OpenTelemetryClientInterceptor(
                 rpc_info.request = request_or_iterator
 
             try:
-                result = invoker(request_or_iterator, metadata)
-
-                for response in result:
-                    yield response
+                yield from invoker(request_or_iterator, metadata)
             except grpc.RpcError as err:
                 span.set_status(Status(StatusCode.ERROR))
                 span.set_attribute(

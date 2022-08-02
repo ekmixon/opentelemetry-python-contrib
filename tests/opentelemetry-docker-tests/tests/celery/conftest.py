@@ -88,5 +88,4 @@ def tracer_provider(memory_exporter):
 
 @pytest.fixture(scope="session")
 def memory_exporter():
-    memory_exporter = InMemorySpanExporter()
-    return memory_exporter
+    return InMemorySpanExporter()
